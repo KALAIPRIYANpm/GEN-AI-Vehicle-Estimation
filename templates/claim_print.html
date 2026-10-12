@@ -1,0 +1,73 @@
+{% from "_macros.html" import carmap, stamp, logo with context %}<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estimate #{{ claim.report_id }} · {{ APP_NAME }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<style>
+  :root { color-scheme: light; }
+  body { background: #E7E9E4; }
+  .doc { max-width: 820px; margin: 24px auto; background: #fff; padding: 40px; border: 1px solid #D3D7CF; }
+  .doc-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1F2328; padding-bottom: 16px; }
+  .doc .brand { color: #1F2328; }
+  .doc h1 { font-size: 2rem; }
+  .doc .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 20px 0; }
+  .doc .photos img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border: 1px solid #D3D7CF; }
+  .sig { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; }
+  .sig div { border-top: 1px solid #1F2328; padding-top: 6px; color: #646B71; font-size: .9rem; }
+  .bar { max-width: 820px; margin: 16px auto 0; display: flex; justify-content: flex-end; gap: 8px; padding: 0 16px; }
+  @media print { .bar { display: none; } .doc { margin: 0; border: 0; padding: 0; max-width: none; } body { background: #fff; } @page { margin: 14mm; } }
+</style>
+</head>
+<body>
+<div class="bar"><button class="btn btn-primary" onclick="window.print()">Print or save as PDF</button></div>
+<div class="doc">
+  <div class="doc-head">
+    <div>
+      <span class="brand" style="color:#1F2328">{{ logo() }}{{ APP_NAME }}</span>
+      <h1 style="margin-top:14px">Repair estimate #{{ claim.report_id }}</h1>
+      <div class="muted">{{ claim.created_at|when('%d %B %Y') }}</div>
+    </div>
+    {{ stamp(claim.status) }}
+  </div>
+
+  <div class="grid grid-2" style="margin-top:20px;gap:24px">
+    <dl class="kv">
+      <dt>Vehicle</dt><dd>{{ (claim.car_brand or '')|title }} {{ claim.car_model or '' }}</dd>
+      <dt>Registration</dt><dd>{{ claim.vehicle_id or '—' }}</dd>
+      <dt>Policy</dt><dd>{{ claim.policy_number or '—' }}</dd>
+      {% if claim.incident_date %}<dt>Incident</dt><dd>{{ claim.incident_date|when }}</dd>{% endif %}
+    </dl>
+    <div>{% set hits = {} %}{% for it in items if it.included %}{% set _ = hits.update({it.part: 1}) %}{% endfor %}{{ carmap(hits) }}</div>
+  </div>
+
+  {% if images %}
+  <div class="photos">{% for im in images %}<img src="{{ url_for('claim_file', report_id=claim.report_id, kind='det', idx=im.position) }}" alt="Photo {{ loop.index }}">{% endfor %}</div>
+  {% endif %}
+
+  <table class="table">
+    <thead><tr><th>Part</th><th>Work</th><th class="r">Qty</th><th class="r">Part / repair</th><th class="r">Labour</th><th class="r">Total</th></tr></thead>
+    <tbody>
+      {% for it in items if it.included %}
+      <tr><td><strong>{{ it.part }}</strong></td><td>{{ it.action|title }}</td><td class="r">{{ it.instances }}</td><td class="r num">{{ it.unit_price|inr }}</td><td class="r num">{{ it.labour|inr }}</td><td class="r num">{{ it.total|inr }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="display:flex;justify-content:flex-end;margin-top:16px">
+    <div class="totals num" style="width:340px">
+      <div><span>Parts and repair</span><span>{{ claim.parts_cost|inr }}</span></div>
+      <div><span>Labour</span><span>{{ claim.labour_cost|inr }}</span></div>
+      <div><span>GST</span><span>{{ claim.gst|inr }}</span></div>
+      <div class="grand"><span>Total</span><span>{{ claim.total_estimate|inr }}</span></div>
+      <div class="ins"><span>Insurer pays</span><span>{{ claim.insurance_coverage|inr }}</span></div>
+      <div class="you"><span>Customer pays</span><span>{{ claim.customer_pays|inr }}</span></div>
+    </div>
+  </div>
+  {% if claim.admin_note %}<div class="callout" style="margin-top:20px"><strong>Assessor's note:</strong> {{ claim.admin_note }}</div>{% endif %}
+  <div class="sig"><div>Customer signature</div><div>Assessor signature</div></div>
+  <p class="muted small" style="margin-top:24px">Estimate generated from photos by an automated detector. Final repair cost is confirmed after physical inspection.</p>
+</div>
+</body>
+</html>

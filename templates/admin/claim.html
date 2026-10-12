@@ -1,0 +1,86 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import stamp, chip, icon with context %}
+{% block title %}Claim #{{ claim.report_id }}{% endblock %}
+{% block crumbs %}<a href="{{ url_for('admin_claims', status='open') }}">Claims</a> / <strong>#{{ claim.report_id }}</strong>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="row" style="gap:16px"><h1><span class="mono-id" style="font-size:inherit">#{{ claim.report_id }}</span>{% if claim.title %} {{ claim.title }}{% endif %}</h1>{{ stamp(claim.status) }}</div>
+    <p>{{ claimant.name if claimant else claim.email }} · {{ (claim.car_brand or '')|title }} {{ claim.car_model or '' }}{% if claim.vehicle_id %} · {{ claim.vehicle_id }}{% endif %} · {{ claim.created_at|when('%d %b %Y, %H:%M') }}</p>
+  </div>
+  <a class="btn" href="{{ url_for('claim_print', report_id=claim.report_id) }}" target="_blank">{{ icon('print') }} Print</a>
+</div>
+
+{% if claim.legacy %}<div class="callout" style="margin-bottom:16px">Imported from the previous version of the app: amounts were priced as full replacements without labour or GST.</div>{% endif %}
+
+{% with editable = claim.status in ('pending', 'under_review'), items_url = url_for('admin_claim_items', report_id=claim.report_id) %}
+{% include "_claim_core.html" %}
+{% endwith %}
+
+<div class="grid grid-main" style="margin-top:20px">
+  <section class="sheet" id="decision">
+    <div class="sheet-head"><h2>Decision</h2>{{ chip(claim.status) }}</div>
+    <div class="sheet-pad">
+      {% if claim.status == 'draft' %}
+        <p class="muted">The customer hasn't submitted this estimate yet, so there's nothing to decide.</p>
+      {% elif claim.status in ('approved', 'rejected') %}
+        <p>This claim was <strong>{{ STATUS_LABELS[claim.status]|lower }}</strong>{% if claim.admin_note %} with the note: “{{ claim.admin_note }}”{% endif %}.</p>
+        <form method="post" action="{{ url_for('admin_claim_status', report_id=claim.report_id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="status" value="pending">
+          <button class="btn" type="submit">Reopen claim</button>
+        </form>
+      {% else %}
+        {% if claim.status == 'pending' %}
+        <form method="post" action="{{ url_for('admin_claim_status', report_id=claim.report_id) }}" style="margin-bottom:16px">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="status" value="under_review">
+          <button class="btn" type="submit">Start review</button> <span class="muted small">Lets the customer know someone is on it.</span>
+        </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin_claim_status', report_id=claim.report_id) }}" data-decision>
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <div class="fields-2">
+            <div class="field"><label for="cov">Insurer covers</label><div class="prefix" style="position:relative"><input class="input num" id="cov" name="coverage_pct" type="number" min="0" max="100" step="0.5" value="{{ '%g'|format(claim.coverage_pct or settings.coverage_pct) }}" style="padding-right:32px"><span style="left:auto;right:12px">%</span></div></div>
+            <div class="field"><label for="ded">Deductible</label><div class="prefix"><span>₹</span><input class="input num" id="ded" name="deductible" type="number" min="0" step="100" value="{{ claim.deductible or 0 }}"></div></div>
+          </div>
+          <div class="field"><label for="note">Note to the customer</label><textarea class="input" id="note" name="note" placeholder="Required when rejecting, e.g. Policy expired before the incident date.">{{ claim.admin_note or '' }}</textarea></div>
+          <div class="row">
+            <button class="btn btn-approve" type="submit" name="status" value="approved">{{ icon('check') }} Approve</button>
+            <button class="btn btn-danger" type="submit" name="status" value="rejected" data-confirm="Reject this claim? The customer will see your note.">Reject</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+
+  <aside class="stack">
+    <section class="sheet sheet-pad">
+      <h3 style="margin-bottom:12px">Documents</h3>
+      <dl class="kv" style="margin-bottom:14px">
+        <dt>Policy no.</dt><dd>{% if claim.policy_number %}<strong>{{ claim.policy_number }}</strong> <span class="muted small">{{ {'user':'typed by customer','ocr':'read by OCR','pdf-text':'read from PDF'}.get(claim.policy_source, '') }}</span>{% else %}<span class="muted">Not found, check the policy document</span>{% endif %}</dd>
+        {% if claim.incident_date %}<dt>Incident</dt><dd>{{ claim.incident_date|when }}</dd>{% endif %}
+        {% if claim.incident_note %}<dt>Account</dt><dd>{{ claim.incident_note }}</dd>{% endif %}
+      </dl>
+      <div class="grid" style="gap:8px">
+        {% if claim.rc_book_path %}<a class="doc-link" href="{{ url_for('claim_file', report_id=claim.report_id, kind='rc') }}" target="_blank">{{ icon('doc') }}<span><strong>RC book</strong></span></a>{% else %}<span class="muted small">No RC book uploaded</span>{% endif %}
+        {% if claim.insurance_copy_path %}<a class="doc-link" href="{{ url_for('claim_file', report_id=claim.report_id, kind='insurance') }}" target="_blank">{{ icon('doc') }}<span><strong>Insurance policy</strong></span></a>{% else %}<span class="muted small">No policy uploaded</span>{% endif %}
+      </div>
+    </section>
+    <section class="sheet sheet-pad">
+      <h3 style="margin-bottom:12px">Customer</h3>
+      {% if claimant %}
+      <dl class="kv">
+        <dt>Name</dt><dd>{{ claimant.name }}{% if claimant.status == 'suspended' %} <span class="chip chip-rejected">Suspended</span>{% endif %}</dd>
+        <dt>Email</dt><dd><a href="mailto:{{ claimant.email }}">{{ claimant.email }}</a></dd>
+        <dt>Phone</dt><dd><a href="tel:{{ claimant.contact_number }}">{{ claimant.contact_number }}</a></dd>
+        <dt>Address</dt><dd>{{ claimant.address }}</dd>
+      </dl>
+      {% else %}<p class="muted">The account for {{ claim.email }} was deleted.</p>{% endif %}
+      {% if history %}
+      <h4 style="margin:16px 0 8px;font-size:1.05rem">Other claims</h4>
+      {% for h in history %}<div class="row spread small" style="padding:4px 0"><a class="mono-id" href="{{ url_for('admin_claim', report_id=h.report_id) }}">#{{ h.report_id }}</a>{{ chip(h.status) }}<span class="num">{{ h.total_estimate|inr }}</span></div>{% endfor %}
+      {% endif %}
+    </section>
+    <section class="sheet sheet-pad"><h3 style="margin-bottom:12px">History</h3>{% include "_timeline.html" %}</section>
+  </aside>
+</div>
+{% endblock %}

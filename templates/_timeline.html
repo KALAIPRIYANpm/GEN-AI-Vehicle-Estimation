@@ -1,0 +1,11 @@
+<ol class="timeline">
+  {% for e in events %}
+  <li class="ev-{{ e.event }}">
+    <div class="t">{{ EVENT_LABELS.get(e.event, e.event|replace('_',' ')|capitalize) }}</div>
+    <div class="d">{{ e.created_at|when('%d %b %Y, %H:%M') }}{% if e.actor and '@' in e.actor and is_admin %} · {{ e.actor }}{% endif %}</div>
+    {% if e.note %}<div class="note">{{ e.note }}</div>{% endif %}
+  </li>
+  {% else %}
+  <li><div class="t">No activity yet</div></li>
+  {% endfor %}
+</ol>

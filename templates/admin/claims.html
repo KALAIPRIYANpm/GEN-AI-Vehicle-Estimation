@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import chip, icon with context %}
+{% block title %}Claims{% endblock %}
+{% block crumbs %}<strong>Claims</strong>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Claims</h1><p>{{ total }} claim{{ 's' if total != 1 }}{% if q %} matching “{{ q }}”{% endif %}</p></div>
+  <a class="btn" href="{{ url_for('admin_claims_csv', status=status or None, q=q or None) }}">{{ icon('download') }} Export CSV</a>
+</div>
+<div class="row spread" style="margin-bottom:16px">
+  <nav class="filters" aria-label="Filter by status">
+    {% for key, label in [('open','Open'), ('', 'All submitted'), ('pending','Submitted'), ('under_review','In review'), ('approved','Approved'), ('rejected','Rejected'), ('draft','Unsubmitted')] %}
+    <a href="{{ url_for('admin_claims', status=key or None, q=q or None) }}" {% if status == key %}aria-current="true"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <form class="search" method="get">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <input class="input" type="search" name="q" value="{{ q }}" placeholder="Claim no., customer, policy, registration" aria-label="Search claims">
+  </form>
+</div>
+<section class="sheet">
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Claim</th><th>Customer</th><th>Vehicle</th><th>Damage</th><th>Policy</th><th>Status</th><th class="r">Estimate</th></tr></thead>
+    <tbody>
+    {% for c in claims %}
+      <tr class="row-link" data-href="{{ url_for('admin_claim', report_id=c.report_id) }}">
+        <td><a class="mono-id" href="{{ url_for('admin_claim', report_id=c.report_id) }}">#{{ c.report_id }}</a><div class="muted small">{{ c.created_at|when }}</div></td>
+        <td>{{ c.name or '(deleted account)' }}<div class="muted small">{{ c.email }}</div></td>
+        <td>{{ (c.car_brand or '')|title }} {{ c.car_model or '' }}<div class="muted small">{{ c.vehicle_id or '' }}</div></td>
+        <td style="max-width:220px">{{ c.parts or '—' }}</td>
+        <td>{{ c.policy_number or '—' }}</td>
+        <td>{{ chip(c.status) }}</td>
+        <td class="r num"><strong>{{ c.total_estimate|inr }}</strong></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7"><div class="empty"><h3>No claims here</h3><p class="muted">Try another status{% if q %} or clear the search{% endif %}.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% if pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  {% for p in range(1, pages + 1) %}<a class="btn btn-sm {% if p == page %}btn-dark{% endif %}" href="{{ url_for('admin_claims', status=status or None, q=q or None, page=p) }}">{{ p }}</a>{% endfor %}
+</nav>
+{% endif %}
+{% endblock %}

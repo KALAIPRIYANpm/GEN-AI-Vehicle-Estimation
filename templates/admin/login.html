@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Admin log in{% endblock %}
+{% block guest_actions %}<a class="btn btn-sm btn-ghost" style="color:#E7E9E4" href="{{ url_for('login') }}">Customer log in</a>{% endblock %}
+{% block main %}
+<div class="auth-main" style="flex:1">
+  <div class="auth-card">
+    <h1>Assessor console</h1>
+    <p class="muted">Review claims, manage customers and keep the parts price list current.</p>
+    <form method="post" class="sheet sheet-pad" style="margin-top:20px">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="field"><label for="u">Admin email</label><input class="input" id="u" name="username" type="email" autocomplete="username" required autofocus></div>
+      <div class="field"><label for="p">Password</label><div class="pw-wrap"><input class="input" id="p" name="password" type="password" autocomplete="current-password" required><button class="pw-toggle" type="button" data-pw-toggle="p">Show</button></div></div>
+      <button class="btn btn-dark btn-block btn-lg" type="submit">Log in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

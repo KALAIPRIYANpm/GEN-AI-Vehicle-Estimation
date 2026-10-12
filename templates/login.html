@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import carmap with context %}
+{% block title %}Log in{% endblock %}
+{% block main %}
+<div class="auth">
+  <aside class="auth-side">
+    <h2>Every dent, priced line by line.</h2>
+    <div>{{ carmap({'Door':1,'Bumper':1}, label="Panel map") }}</div>
+    <p style="max-width:42ch">Your estimates and claims are kept in one place, with the assessor's decision and notes on each.</p>
+  </aside>
+  <div class="auth-main">
+    <div class="auth-card">
+      <h1>Log in</h1>
+      <p class="muted">New here? <a href="{{ url_for('signup') }}">Create an account</a></p>
+      <form method="post" class="sheet sheet-pad" style="margin-top:20px">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" autocomplete="email" required autofocus></div>
+        <div class="field"><label for="password">Password</label>
+          <div class="pw-wrap"><input class="input" id="password" name="password" type="password" autocomplete="current-password" required><button class="pw-toggle" type="button" data-pw-toggle="password">Show</button></div></div>
+        <div class="row spread" style="margin-bottom:18px"><label class="check"><input type="checkbox" name="remember" checked> Keep me logged in</label></div>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Log in</button>
+      </form>
+      <p class="muted small" style="margin-top:16px">Assessor or admin? <a href="{{ url_for('admin_login') }}">Use the admin console</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

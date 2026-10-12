@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "_macros.html" import carmap with context %}
+{% block title %}Repair estimates from a photo{% endblock %}
+{% block main %}
+<section class="hero">
+  <div>
+    <h1>Photograph the damage. Get the repair bill before the garage does.</h1>
+    <p class="lede">Upload a few photos of your car. {{ APP_NAME }} marks every damaged panel, prices the repair for your make and model, and turns it into an insurance claim.</p>
+    <div class="row">
+      {% if current_user %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('scan') }}">Start an estimate</a>
+        <a class="btn btn-lg" href="{{ url_for('claims') }}">Your claims</a>
+      {% else %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('signup') }}">Create a free account</a>
+        <a class="btn btn-lg" href="{{ url_for('login') }}">Log in</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="jobcard" aria-label="Example estimate">
+    <div class="jobcard-in">
+      <div class="row spread">
+        <div><strong style="font-family:var(--font-cond);font-size:1.3rem">Hyundai Creta</strong><div class="muted small">Example estimate · 3 photos</div></div>
+        <span class="stamp stamp-approved">Approved</span>
+      </div>
+      <div style="margin-top:14px">{{ carmap({'Bumper':1,'Light':1,'Fender':1}, label="Example: bumper, headlight and fender marked as damaged") }}</div>
+      <div class="lines">
+        <div><span class="part-dot">1</span><span>Bumper</span><span class="act">Replace</span><strong class="num">₹14,400</strong></div>
+        <div><span class="part-dot">2</span><span>Headlight</span><span class="act">Replace</span><strong class="num">₹4,800</strong></div>
+        <div><span class="part-dot">3</span><span>Fender</span><span class="act">Repair</span><strong class="num">₹4,200</strong></div>
+      </div>
+      <div class="sum"><span class="muted">Total with GST</span><strong class="num">₹27,612</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="band-in">
+    <h2>How a claim moves</h2>
+    <ol class="how">
+      <li><h3>Photograph</h3><p>Upload up to six photos from different angles. The detector marks each damaged part and how sure it is.</p></li>
+      <li><h3>Review the estimate</h3><p>Prices come from the parts list for your car. Switch any line between repair and replace, drop a false mark, or add a part it missed.</p></li>
+      <li><h3>Claim</h3><p>Attach your RC book and policy. The policy number is read from the document, and an assessor approves or rejects with a note.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="band-in parts-explorer">
+  <div>
+    <h2>Seven panels the model is trained on</h2>
+    <p class="muted" style="margin-top:8px">Pick one to see where it sits on the car.</p>
+    <div class="part-pills" data-part-pills>
+      {% for p in PARTS %}<button type="button" aria-pressed="false" data-part="{{ p }}">{{ p if p != 'Dickey' else 'Dickey (boot)' }}</button>{% endfor %}
+    </div>
+  </div>
+  <div class="sheet sheet-pad" data-part-map>{{ carmap({}, label="Vehicle panel map") }}</div>
+</section>
+{% endblock %}

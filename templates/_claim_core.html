@@ -1,0 +1,118 @@
+{# Shared by the customer claim page and the admin assessor page.
+   expects: claim, items, images, settings, editable, items_url #}
+{% from "_macros.html" import carmap, icon with context %}
+{% set hits = {} %}
+{% for it in items if it.included %}{% set _ = hits.update({it.part: (hits.get(it.part, 0) + it.instances)}) %}{% endfor %}
+
+<div class="grid grid-main">
+  <section>
+    {% if images %}
+    <div class="viewer" data-viewer data-marks="on">
+      <div class="viewer-stage">
+        <img data-viewer-img alt="Photo of the vehicle with damaged parts marked"
+             src="{{ url_for('claim_file', report_id=claim.report_id, kind='orig' if images[0].detections else 'det', idx=images[0].position) }}">
+        <svg class="marks" data-viewer-marks preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="viewer-bar">
+        <span class="small" data-viewer-caption>Photo 1 of {{ images|length }}</span>
+        <div class="row" style="gap:8px">
+          <div class="seg" role="group" aria-label="Damage marks" data-mark-toggle {% if not images[0].detections %}hidden{% endif %}>
+            <button type="button" aria-pressed="true" data-v="on">Marked</button>
+            <button type="button" aria-pressed="false" data-v="off">Original</button>
+          </div>
+          <a class="icon-btn" data-viewer-download href="{{ url_for('claim_file', report_id=claim.report_id, kind='det', idx=images[0].position) }}" download title="Download marked photo" aria-label="Download marked photo">{{ icon('download') }}</a>
+        </div>
+      </div>
+    </div>
+    <div class="thumbs" {% if images|length < 2 %}hidden{% endif %}>
+      {% for im in images %}
+      <button type="button" data-thumb="{{ loop.index0 }}" {% if loop.first %}aria-current="true"{% endif %} aria-label="Show photo {{ loop.index }}">
+        <img src="{{ url_for('claim_file', report_id=claim.report_id, kind='det', idx=im.position) }}" alt="" loading="lazy"><span class="n">{{ loop.index }}</span>
+      </button>
+      {% endfor %}
+    </div>
+    <script type="application/json" data-viewer-data>{{ images|map(attribute='detections')|list|tojson }}</script>
+    <script type="application/json" data-viewer-urls>{{ images|map(attribute='position')|list|tojson }}</script>
+    {% endif %}
+  </section>
+
+  <aside class="stack">
+    <div class="sheet sheet-pad">
+      <div class="row spread" style="margin-bottom:8px"><h3>Damage map</h3><span class="muted small">{{ hits|length }} panel type{{ 's' if hits|length != 1 }}</span></div>
+      <div data-claim-map>{{ carmap(hits, label="Damaged panels: " ~ (hits.keys()|join(', ') or 'none')) }}</div>
+      <div class="carmap-legend"><span><i class="swatch swatch-hit"></i>Damaged</span><span><i class="swatch"></i>No damage found</span></div>
+    </div>
+    <div class="sheet sheet-pad" data-totals>
+      <h3 style="margin-bottom:8px">Estimate</h3>
+      <div class="totals num">
+        <div><span>Parts and repair</span><span data-t="parts">{{ claim.parts_cost|inr }}</span></div>
+        <div><span>Labour</span><span data-t="labour">{{ claim.labour_cost|inr }}</span></div>
+        <div><span>GST {{ '%g'|format(settings.gst_pct) }}%</span><span data-t="gst">{{ claim.gst|inr }}</span></div>
+        <div class="grand"><span>Total</span><span data-t="total">{{ claim.total_estimate|inr }}</span></div>
+        <div class="ins"><span>Insurer pays <span class="muted small" style="font-weight:400">{{ (claim.coverage_pct or 0)|round|int }}%{% if claim.deductible %} less {{ claim.deductible|inr }} deductible{% endif %}</span></span><span data-t="ins">{{ claim.insurance_coverage|inr }}</span></div>
+        <div class="you"><span>You pay</span><span data-t="you">{{ claim.customer_pays|inr }}</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<section class="sheet" id="estimate" style="margin-top:20px">
+  <form method="post" action="{{ items_url }}" data-estimate-form
+        data-repair="{{ settings.repair_pct }}" data-labour="{{ settings.labour_pct }}" data-gst="{{ settings.gst_pct }}"
+        data-cov="{{ claim.coverage_pct or 0 }}" data-ded="{{ claim.deductible or 0 }}" data-legacy="{{ 1 if claim.legacy else 0 }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <div class="sheet-head">
+      <h2>Line items</h2>
+      <div class="row">
+        <span class="unsaved">Unsaved changes</span>
+        {% if editable %}<button class="btn btn-dark btn-sm" type="submit">Save estimate</button>{% endif %}
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table est-table">
+        <thead><tr>
+          {% if editable %}<th><span class="sr-only">Include</span></th>{% endif %}
+          <th>Part</th><th class="hide-sm">Detector</th><th>Work</th><th class="r">Qty</th><th class="r hide-sm">Part / repair</th><th class="r hide-sm">Labour</th><th class="r">Line total</th>
+        </tr></thead>
+        <tbody>
+          {% for it in items %}
+          <tr data-row data-part="{{ it.part }}" data-base="{{ it.base_price or it.unit_price }}" {% if not it.included %}class="is-off"{% endif %}>
+            {% if editable %}<td><label class="check"><input type="checkbox" name="item-{{ it.id }}-included" value="1" {% if it.included %}checked{% endif %} data-inc aria-label="Include {{ it.part }}"></label></td>{% endif %}
+            <td><span class="part-name"><strong>{{ it.part }}</strong></span>
+              {% if it.severity %}<div><span class="sev sev-{{ it.severity }}">{{ 'Added by hand' if it.severity == 'manual' else it.severity|title ~ ' damage' }}</span></div>{% endif %}</td>
+            <td class="hide-sm">{% if it.confidence %}<span class="conf"><span class="conf-bar"><i style="width:{{ (it.confidence*100)|round|int }}%"></i></span>{{ (it.confidence*100)|round|int }}%</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td>{% if editable %}
+                <select class="input input-sm" name="item-{{ it.id }}-action" data-action aria-label="Work on {{ it.part }}">
+                  <option value="repair" {% if it.action == 'repair' %}selected{% endif %}>Repair</option>
+                  <option value="replace" {% if it.action == 'replace' %}selected{% endif %}>Replace</option>
+                </select>
+                {% else %}{{ it.action|title }}{% endif %}</td>
+            <td class="r">{% if editable %}<input class="input input-sm num" type="number" min="1" max="10" name="item-{{ it.id }}-instances" value="{{ it.instances }}" data-qty aria-label="Quantity of {{ it.part }}">{% else %}{{ it.instances }}{% endif %}</td>
+            <td class="r num hide-sm" data-c="unit">{{ it.unit_price|inr }}</td>
+            <td class="r num hide-sm" data-c="labour">{{ it.labour|inr }}</td>
+            <td class="r num" data-c="total"><strong>{{ it.total|inr }}</strong></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="muted">No line items.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if editable %}
+    <div class="sheet-foot row spread">
+      <div class="row">
+        <label class="small" for="new_part"><strong>Missed something?</strong></label>
+        <select class="input input-sm" id="new_part" name="new_part" style="width:auto">
+          <option value="">Add a part…</option>
+          {% for p in PARTS %}<option value="{{ p }}">{{ p }}</option>{% endfor %}
+        </select>
+        <select class="input input-sm" name="new_action" style="width:auto" aria-label="Work for the added part">
+          <option value="repair">Repair</option><option value="replace">Replace</option>
+        </select>
+        <button class="btn btn-sm" type="submit">{{ icon('plus') }} Add</button>
+      </div>
+      <span class="muted small">Repair is priced at {{ settings.repair_pct|round|int }}% of a new part; labour at {{ settings.labour_pct|round|int }}%.</span>
+    </div>
+    {% endif %}
+  </form>
+</section>

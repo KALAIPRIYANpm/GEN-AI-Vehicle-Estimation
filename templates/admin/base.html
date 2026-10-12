@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import logo, icon with context %}
+{% block shell %}
+<div class="admin-shell">
+  <aside class="side">
+    <a class="brand" href="{{ url_for('admin_dashboard') }}">{{ logo() }}{{ APP_NAME }} <small>Assessor</small></a>
+    {% set ep = request.endpoint %}
+    <a class="nav-i" href="{{ url_for('admin_dashboard') }}" {% if ep == 'admin_dashboard' %}aria-current="page"{% endif %}>{{ icon('grid') }} Overview</a>
+    <a class="nav-i" href="{{ url_for('admin_claims', status='open') }}" {% if ep in ('admin_claims','admin_claim') %}aria-current="page"{% endif %}>{{ icon('claims') }} Claims {% if open_count %}<span class="count">{{ open_count }}</span>{% endif %}</a>
+    <a class="nav-i" href="{{ url_for('user_manager') }}" {% if ep == 'user_manager' %}aria-current="page"{% endif %}>{{ icon('users') }} Customers</a>
+    <a class="nav-i" href="{{ url_for('admin_prices') }}" {% if ep == 'admin_prices' %}aria-current="page"{% endif %}>{{ icon('tag') }} Parts prices</a>
+    <a class="nav-i" href="{{ url_for('admin_settings') }}" {% if ep == 'admin_settings' %}aria-current="page"{% endif %}>{{ icon('gear') }} Settings</a>
+    <div class="bottom">
+      <a class="nav-i" href="{{ url_for('admin_logout') }}">{{ icon('out') }} Log out</a>
+    </div>
+  </aside>
+  <div class="admin-main">
+    <div class="admin-top">
+      <div>{% block crumbs %}{% endblock %}</div>
+      <div class="row">
+        <span class="muted small">{{ session.admin_email }}</span>
+        <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch light or dark theme">{{ icon('moon') }}</button>
+      </div>
+    </div>
+    {% include "_flashes.html" %}
+    <main class="admin-page">{% block content %}{% endblock %}</main>
+  </div>
+</div>
+{% endblock %}

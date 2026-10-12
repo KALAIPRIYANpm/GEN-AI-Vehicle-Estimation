@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon with context %}
+{% block title %}New estimate{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>New estimate</h1>
+    <p>Pricing for your {{ current_user.car_brand|title }} {{ current_user.model }}. <a href="{{ url_for('profile', edit=1) }}">Change vehicle</a></p>
+  </div>
+</div>
+
+{% if not detector_status.ready %}
+<div class="callout callout-bad" style="margin-bottom:20px"><strong>The damage detector isn't ready.</strong> {{ detector_status.message }}</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="grid grid-main" data-scan-form>
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+  <section class="stack">
+    <label class="drop" data-drop>
+      <input type="file" name="images" accept="image/jpeg,image/png,image/webp,image/bmp" multiple data-file-input>
+      {{ icon('upload') }}
+      <strong>Drop photos here or click to choose</strong>
+      <span class="muted">Up to 6 photos · JPG, PNG or WebP · they're analysed together as one claim</span>
+    </label>
+    <div class="previews" data-previews aria-live="polite"></div>
+  </section>
+
+  <aside class="sheet">
+    <div class="sheet-head"><h3>Details</h3></div>
+    <div class="sheet-pad">
+      <div class="field"><label for="title">Name this estimate <span class="muted">(optional)</span></label>
+        <input class="input" id="title" name="title" maxlength="80" placeholder="Parking lot scrape, rear left"></div>
+      <div class="field">
+        <label for="confidence">Detection sensitivity</label>
+        <input class="range" type="range" id="confidence" name="confidence" min="0.10" max="0.80" step="0.05" value="{{ settings.min_confidence }}" data-conf>
+        <div class="row spread small muted"><span>Finds more, more false marks</span><span>Only clear damage</span></div>
+        <span class="hint">Minimum model confidence: <strong data-conf-out>{{ (settings.min_confidence * 100)|round|int }}%</strong></span>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" type="submit" data-scan-submit disabled>{{ icon('camera') }} Analyse photos</button>
+      <p class="muted small" style="margin:12px 0 0" data-scan-note>Add at least one photo to continue.</p>
+    </div>
+  </aside>
+</form>
+{% endblock %}

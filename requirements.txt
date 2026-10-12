@@ -1,0 +1,18 @@
+# Web app
+Flask>=3.0
+Werkzeug>=3.0
+python-dotenv>=1.0
+bcrypt>=4.1
+
+# Images and detection (ultralytics installs PyTorch)
+numpy>=1.26
+opencv-python>=4.9
+pillow>=10.0
+ultralytics>=8.3
+
+# Reading policy numbers from PDFs
+pypdf>=4.0
+
+# Optional: OCR for scanned/photographed policies (large download). Uncomment to enable.
+# easyocr>=1.7
+# pymupdf>=1.24

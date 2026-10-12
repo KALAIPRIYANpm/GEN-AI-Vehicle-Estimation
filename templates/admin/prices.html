@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import icon with context %}
+{% block title %}Parts prices{% endblock %}
+{% block crumbs %}<strong>Parts prices</strong>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Parts prices</h1><p>New-part prices per model. Repairs, labour and GST are worked out from these in <a href="{{ url_for('admin_settings') }}">Settings</a>.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('admin_prices', new=1) }}">{{ icon('plus') }} Add a model</a>
+</div>
+<div class="grid" style="grid-template-columns:minmax(0,260px) minmax(0,1fr);align-items:start" data-prices-grid>
+  <nav class="sheet model-list" aria-label="Models">
+    {% for brand, models in catalogue.items() %}
+      <h4>{{ brand|title }}</h4>
+      {% for m in models %}<a href="{{ url_for('admin_prices', brand=brand, model=m) }}" {% if not new and brand == sel_brand and m == sel_model %}aria-current="true"{% endif %}><span>{{ m }}</span></a>{% endfor %}
+    {% endfor %}
+  </nav>
+
+  <section class="sheet">
+    {% set editing = not new and sel_brand in catalogue and sel_model in catalogue[sel_brand] %}
+    {% set prices = catalogue[sel_brand][sel_model] if editing else fallback %}
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="sheet-head"><h2>{{ (sel_brand|title ~ ' ' ~ sel_model) if editing else 'New model' }}</h2></div>
+      <div class="sheet-pad">
+        {% if editing %}
+          <input type="hidden" name="brand" value="{{ sel_brand }}"><input type="hidden" name="model" value="{{ sel_model }}">
+        {% else %}
+          <div class="fields-2">
+            <div class="field"><label for="brand">Make</label><input class="input" id="brand" name="brand" list="brands" required placeholder="TATA"><datalist id="brands">{% for b in catalogue %}<option value="{{ b }}">{% endfor %}</datalist></div>
+            <div class="field"><label for="model">Model</label><input class="input" id="model" name="model" required placeholder="Nexon"></div>
+          </div>
+          <p class="muted small">Prefilled with the standard prices used when a model isn't listed.</p>
+        {% endif %}
+        <div class="price-grid">
+          {% for p in PARTS %}
+          <div class="field"><label for="price_{{ p }}">{{ p }}</label><div class="prefix"><span>₹</span><input class="input num" id="price_{{ p }}" name="price_{{ p }}" type="number" min="0" step="100" value="{{ prices.get(p, fallback[p]) }}" required></div></div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="sheet-foot row spread">
+        <button class="btn btn-dark" type="submit" name="action" value="save">{{ 'Save prices' if editing else 'Add model' }}</button>
+        {% if editing %}<button class="btn btn-danger" type="submit" name="action" value="delete" formnovalidate data-confirm="Remove {{ sel_brand|title }} {{ sel_model }} from the price list? Existing estimates keep their prices.">Remove model</button>{% endif %}
+      </div>
+    </form>
+  </section>
+</div>
+<style>@media (max-width: 900px) { [data-prices-grid] { grid-template-columns: 1fr !important; } .model-list { max-height: 240px; } }</style>
+{% endblock %}

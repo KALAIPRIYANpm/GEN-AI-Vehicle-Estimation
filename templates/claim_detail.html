@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stamp, icon with context %}
+{% block title %}Claim #{{ claim.report_id }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('claims') }}" class="small no-print">← All claims</a>
+<div class="page-head" style="margin-top:8px">
+  <div>
+    <div class="row" style="gap:16px">
+      <h1><span class="mono-id" style="font-size:inherit">#{{ claim.report_id }}</span>{% if claim.title %} {{ claim.title }}{% endif %}</h1>
+      {{ stamp(claim.status, animate=claim.status in ('approved','rejected')) }}
+    </div>
+    <p>{{ (claim.car_brand or '')|title }} {{ claim.car_model or '' }}{% if claim.vehicle_id %} · {{ claim.vehicle_id }}{% endif %} · Created {{ claim.created_at|when('%d %b %Y, %H:%M') }}</p>
+  </div>
+  <div class="row no-print">
+    <a class="btn" href="{{ url_for('claim_print', report_id=claim.report_id) }}" target="_blank">{{ icon('print') }} Print estimate</a>
+    {% if claim.status == 'draft' %}
+    <form method="post" action="{{ url_for('claim_delete', report_id=claim.report_id) }}" data-confirm="Delete this estimate and its photos? This can't be undone.">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <button class="btn btn-danger" type="submit">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if just_created and claim.status == 'draft' %}
+<div class="callout callout-warn" style="margin-bottom:20px"><strong>Here's your estimate.</strong> Check each line below. Untick anything that isn't damaged, switch repair or replace, then submit the claim at the bottom of the page.</div>
+{% endif %}
+{% if claim.status == 'rejected' and claim.admin_note %}
+<div class="callout callout-bad" style="margin-bottom:20px"><strong>Why this claim was rejected:</strong> {{ claim.admin_note }}</div>
+{% elif claim.status == 'approved' %}
+<div class="callout callout-good" style="margin-bottom:20px"><strong>Approved.</strong> Your insurer pays {{ claim.insurance_coverage|inr }}; your share is {{ claim.customer_pays|inr }}.{% if claim.admin_note %} Assessor's note: {{ claim.admin_note }}{% endif %}</div>
+{% endif %}
+
+{% with editable = claim.status == 'draft', items_url = url_for('claim_update_items', report_id=claim.report_id) %}
+{% include "_claim_core.html" %}
+{% endwith %}
+
+<div class="grid grid-2" style="margin-top:20px">
+  {% if claim.status in ('draft', 'rejected') %}
+  <section class="sheet" id="submit">
+    <div class="sheet-head"><h2>{{ 'Submit your claim' if claim.status == 'draft' else 'Resubmit with new documents' }}</h2></div>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('claim_submit', report_id=claim.report_id) }}" class="sheet-pad" data-submit-form>
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="fields-2">
+        <div class="field"><label for="rc_book">RC book</label><input class="input" id="rc_book" type="file" name="rc_book" accept=".pdf,image/*" required><span class="hint">PDF or photo</span></div>
+        <div class="field"><label for="insurance_copy">Insurance policy</label><input class="input" id="insurance_copy" type="file" name="insurance_copy" accept=".pdf,image/*" required><span class="hint">We read the policy number from it</span></div>
+      </div>
+      <div class="fields-2">
+        <div class="field"><label for="incident_date">Date of the incident</label><input class="input" id="incident_date" type="date" name="incident_date" max="{{ claim.created_at[:10] }}"></div>
+        <div class="field"><label for="policy_number">Policy number <span class="muted">(optional)</span></label><input class="input" id="policy_number" name="policy_number" placeholder="Leave blank to read it from the policy" value="{{ claim.policy_number if claim.policy_source == 'user' else '' }}"></div>
+      </div>
+      <div class="field"><label for="incident_note">What happened <span class="muted">(optional)</span></label><textarea class="input" id="incident_note" name="incident_note" maxlength="1000" placeholder="Reversing out of a parking spot, hit a pillar on the rear left.">{{ claim.incident_note or '' }}</textarea></div>
+      <button class="btn btn-primary btn-lg" type="submit" {% if claim.total_estimate <= 0 %}disabled{% endif %}>Submit claim for {{ claim.total_estimate|inr }}</button>
+      {% if claim.total_estimate <= 0 %}<p class="muted small" style="margin-top:8px">Include at least one part to submit.</p>{% endif %}
+    </form>
+  </section>
+  {% else %}
+  <section class="sheet">
+    <div class="sheet-head"><h2>Claim details</h2></div>
+    <div class="sheet-pad">
+      <dl class="kv">
+        <dt>Policy number</dt><dd>{{ claim.policy_number or 'To be checked by the assessor' }}{% if claim.policy_source == 'ocr' or claim.policy_source == 'pdf-text' %} <span class="muted small">(read from your policy)</span>{% endif %}</dd>
+        {% if claim.incident_date %}<dt>Incident date</dt><dd>{{ claim.incident_date|when }}</dd>{% endif %}
+        {% if claim.submitted_at %}<dt>Submitted</dt><dd>{{ claim.submitted_at|when('%d %b %Y, %H:%M') }}</dd>{% endif %}
+        {% if claim.incident_note %}<dt>What happened</dt><dd>{{ claim.incident_note }}</dd>{% endif %}
+      </dl>
+      <div class="grid grid-2" style="margin-top:16px;gap:10px">
+        {% if claim.rc_book_path %}<a class="doc-link" href="{{ url_for('claim_file', report_id=claim.report_id, kind='rc') }}" target="_blank">{{ icon('doc') }}<span><strong>RC book</strong><br><span class="muted small">Open</span></span></a>{% endif %}
+        {% if claim.insurance_copy_path %}<a class="doc-link" href="{{ url_for('claim_file', report_id=claim.report_id, kind='insurance') }}" target="_blank">{{ icon('doc') }}<span><strong>Insurance policy</strong><br><span class="muted small">Open</span></span></a>{% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="sheet">
+    <div class="sheet-head"><h2>History</h2></div>
+    <div class="sheet-pad">{% include "_timeline.html" %}</div>
+  </section>
+</div>
+{% endblock %}

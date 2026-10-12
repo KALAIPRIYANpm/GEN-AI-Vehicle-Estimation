@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import chip, icon, carmap with context %}
+{% block title %}Claims{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Claims</h1><p>Every estimate you've made, and where each claim stands.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('scan') }}">{{ icon('camera') }} New estimate</a>
+</div>
+
+<div class="row spread" style="margin-bottom:16px">
+  <nav class="filters" aria-label="Filter by status">
+    {% for key, label in [('', 'All'), ('draft', 'Estimates'), ('open', 'Submitted'), ('approved', 'Approved'), ('rejected', 'Rejected')] %}
+    <a href="{{ url_for('claims', status=key, q=q or None) }}" {% if status == key %}aria-current="true"{% endif %}>{{ label }}</a>
+    {% endfor %}
+  </nav>
+  <form class="search" method="get">
+    {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+    <input class="input" type="search" name="q" value="{{ q }}" placeholder="Search by claim no., name or policy" aria-label="Search claims">
+  </form>
+</div>
+
+{% if claims %}
+<div class="claim-list">
+  {% for c in claims %}
+  <a class="claim-row" href="{{ url_for('claim_detail', report_id=c.report_id) }}">
+    <img class="thumb" src="{{ url_for('claim_file', report_id=c.report_id, kind='det') }}" alt="" loading="lazy">
+    <div>
+      <h3><span class="mono-id">#{{ c.report_id }}</span> {{ chip(c.status) }}</h3>
+      <div>{{ c.title or c.parts or 'No parts included' }}</div>
+      <div class="meta">{{ c.created_at|when }} · {{ c.photo_count }} photo{{ 's' if c.photo_count != 1 }}{% if c.policy_number %} · Policy {{ c.policy_number }}{% endif %}</div>
+    </div>
+    <div class="amt"><strong class="num">{{ c.total_estimate|inr }}</strong><span class="muted small">{% if c.status == 'approved' %}Insurer pays {{ c.insurance_coverage|inr }}{% else %}Estimate incl. GST{% endif %}</span></div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<section class="sheet empty">
+  {% if q or status %}
+    <h3>Nothing matches that filter</h3>
+    <p class="muted">Try another status or clear the search.</p>
+    <a class="btn" href="{{ url_for('claims') }}">Show all claims</a>
+  {% else %}
+    <div style="max-width:320px;margin:0 auto 12px">{{ carmap({}, label="Vehicle outline") }}</div>
+    <h3>No claims yet</h3>
+    <p class="muted">Start with photos of the damage. You can submit the claim once you've checked the estimate.</p>
+    <a class="btn btn-primary" href="{{ url_for('scan') }}">{{ icon('camera') }} New estimate</a>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,64 @@
+{# Side-view panel map. `hits` is a dict {part: count}; heat=True tints by relative frequency. #}
+{% macro carmap(hits={}, heat=False, label="Vehicle panel map", interactive=False) -%}
+{% set maxv = (hits.values()|max) if hits else 0 %}
+{% macro cls(part) -%}
+panel{% if part in hits and hits[part] %} hit{% endif %}
+{%- endmacro %}
+{% macro heatstyle(part) -%}
+{% if heat and part in hits and hits[part] and maxv %}style="fill: color-mix(in srgb, var(--amber) {{ (25 + 75 * hits[part] / maxv)|round|int }}%, var(--paper)); stroke: var(--amber-ink)"{% endif %}
+{%- endmacro %}
+<svg class="carmap{% if interactive %} carmap-live{% endif %}" viewBox="0 0 420 170" role="img" aria-label="{{ label }}">
+  <defs>
+    <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="7" height="7" fill="var(--amber-soft)"/>
+      <rect width="3.2" height="7" fill="var(--amber)"/>
+    </pattern>
+  </defs>
+  <line class="ground" x1="6" y1="153" x2="414" y2="153"/>
+  <path class="body" d="M22 130 L18 102 Q17 86 30 82 L108 73 L146 45 Q152 40 162 40 L222 40 Q232 40 240 46 L284 74 L372 84 Q392 88 396 104 L398 130 Z"/>
+  <path class="panel glass" d="M126 72 L150 47 Q154 44 160 44 L194 44 L194 72 Z"/>
+  <path class="panel glass" d="M200 72 L200 44 L220 44 Q227 44 233 49 L258 72 Z"/>
+  <path data-part="Windshield" class="{{ cls('Windshield') }} glass" {{ heatstyle('Windshield') }} d="M232 42 Q238 42 244 48 L284 74 L268 74 L237 50 Q234 46 228 44 Z"><title>Windshield</title></path>
+  <path data-part="Dickey" class="{{ cls('Dickey') }}" {{ heatstyle('Dickey') }} d="M31 84 L108 75 L112 94 L22 99 Q20 88 31 84 Z"><title>Dickey (boot lid)</title></path>
+  <path data-part="Door" class="{{ cls('Door') }}" {{ heatstyle('Door') }} d="M120 76 L196 76 L196 126 L124 126 Q122 100 120 76 Z"><title>Door</title></path>
+  <path data-part="Door" class="{{ cls('Door') }}" {{ heatstyle('Door') }} d="M199 76 L270 76 Q276 96 274 126 L199 126 Z"><title>Door</title></path>
+  <path data-part="Bonnet" class="{{ cls('Bonnet') }}" {{ heatstyle('Bonnet') }} d="M285 75 L372 85 Q382 87 386 91 L287 88 Z"><title>Bonnet</title></path>
+  <path data-part="Fender" class="{{ cls('Fender') }}" {{ heatstyle('Fender') }} d="M276 89 L368 93 L370 105 L361 105 A33 33 0 0 0 299 107 L279 108 Q280 98 276 89 Z"><title>Fender</title></path>
+  <path data-part="Light" class="{{ cls('Light') }} lamp" {{ heatstyle('Light') }} d="M372 93 L391 96 Q395 99 395 104 L372 103 Z"><title>Headlight</title></path>
+  <path data-part="Light" class="{{ cls('Light') }} lamp" {{ heatstyle('Light') }} d="M20 87 L32 85 L33 98 L19 99 Z"><title>Tail light</title></path>
+  <path data-part="Bumper" class="{{ cls('Bumper') }}" {{ heatstyle('Bumper') }} d="M371 107 L397 107 L398 131 L362 131 Q367 119 371 107 Z"><title>Front bumper</title></path>
+  <path data-part="Bumper" class="{{ cls('Bumper') }}" {{ heatstyle('Bumper') }} d="M18 104 L56 104 Q58 118 60 131 L22 131 Z"><title>Rear bumper</title></path>
+  <circle class="tyre" cx="90" cy="130" r="23"/><circle class="rim" cx="90" cy="130" r="12"/>
+  <circle class="tyre" cx="330" cy="130" r="23"/><circle class="rim" cx="330" cy="130" r="12"/>
+</svg>
+{%- endmacro %}
+
+{% macro chip(status) -%}
+<span class="chip chip-{{ status }}">{{ STATUS_LABELS.get(status, status|title) }}</span>
+{%- endmacro %}
+
+{% macro stamp(status, animate=False) -%}
+<span class="stamp stamp-{{ status }}{% if animate %} stamp-in{% endif %}">{{ STATUS_LABELS.get(status, status|title) }}</span>
+{%- endmacro %}
+
+{% macro icon(name) -%}
+{%- if name == 'camera' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+{%- elif name == 'upload' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M4 15v4h16v-4"/></svg>
+{%- elif name == 'print' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5M7 17H4v-7h16v7h-3"/><path d="M7 14h10v6H7z"/></svg>
+{%- elif name == 'doc' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>
+{%- elif name == 'grid' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+{%- elif name == 'claims' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3"/></svg>
+{%- elif name == 'users' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3.5 3.5 0 0 1 0 7M18 14c2 .7 3 3 3 6"/></svg>
+{%- elif name == 'tag' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+{%- elif name == 'gear' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+{%- elif name == 'out' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v16h-6M10 8l-4 4 4 4M6 12h10"/></svg>
+{%- elif name == 'moon' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+{%- elif name == 'check' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17l9-10"/></svg>
+{%- elif name == 'download' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M4 19h16"/></svg>
+{%- elif name == 'plus' -%}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro logo() -%}
+<svg class="brand-mark" viewBox="0 0 26 26" aria-hidden="true"><rect x="1" y="1" width="24" height="24" rx="4" fill="#F2B705"/><path d="M6 6h5M6 6v5M20 20h-5M20 20v-5M20 6h-5M20 6v5M6 20h5M6 20v-5" stroke="#1F2328" stroke-width="2.4" stroke-linecap="square"/></svg>
+{%- endmacro %}

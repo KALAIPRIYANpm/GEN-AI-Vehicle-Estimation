@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import carmap with context %}
+{% block title %}Create account{% endblock %}
+{% block main %}
+<div class="auth">
+  <aside class="auth-side">
+    <h2>Prices for your car, not an average one.</h2>
+    <div>{{ carmap({'Bonnet':1,'Windshield':1,'Light':1}, label="Panel map") }}</div>
+    <p style="max-width:42ch">We use your make and model to look up part prices, so add the car you'll be claiming for. You can change it later from your profile.</p>
+  </aside>
+  <div class="auth-main">
+    <div class="auth-card wide">
+      <h1>Create your account</h1>
+      <p class="muted">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+      <form method="post" class="sheet sheet-pad" style="margin-top:20px" novalidate data-validate>
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <fieldset class="group">
+          <legend>You</legend>
+          <div class="fields-2">
+            <div class="field"><label for="name">Full name</label><input class="input" id="name" name="name" autocomplete="name" value="{{ form.get('name','') }}" required></div>
+            <div class="field"><label for="phone">Phone</label><input class="input" id="phone" name="phoneNumber" type="tel" autocomplete="tel" inputmode="tel" placeholder="98765 43210" value="{{ form.get('phoneNumber','') }}" required pattern="\+?[\d\s\-]{10,15}"></div>
+          </div>
+          <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" autocomplete="email" value="{{ form.get('email','') }}" required></div>
+          <div class="field"><label for="address">Address</label><input class="input" id="address" name="address" autocomplete="street-address" value="{{ form.get('address','') }}" required></div>
+          <div class="fields-2">
+            <div class="field"><label for="password">Password</label>
+              <div class="pw-wrap"><input class="input" id="password" name="password" type="password" autocomplete="new-password" minlength="8" required><button class="pw-toggle" type="button" data-pw-toggle="password">Show</button></div>
+              <span class="hint">At least 8 characters</span></div>
+            <div class="field"><label for="confirm">Confirm password</label><input class="input" id="confirm" name="confirmPassword" type="password" autocomplete="new-password" required data-match="password"></div>
+          </div>
+        </fieldset>
+        <fieldset class="group">
+          <legend>Your vehicle</legend>
+          {% include "_vehicle_fields.html" %}
+        </fieldset>
+        <button class="btn btn-primary btn-block btn-lg" type="submit">Create account</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

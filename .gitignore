@@ -1,0 +1,11 @@
+.venv/
+venv*/
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.env
+instance/
+yolov8n.pt
+yolov3.weights
+car_damage_model.h5

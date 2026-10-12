@@ -1,0 +1,25 @@
+{# expects: catalogue {BRAND: [models]}, cur_brand, cur_model, cur_vid #}
+{% set cur_brand = (cur_brand if cur_brand is defined else form.get('carBrand','')) or '' %}
+{% set cur_model = (cur_model if cur_model is defined else form.get('carModel','')) or '' %}
+{% set cur_vid = (cur_vid if cur_vid is defined else form.get('vehicleId','')) or '' %}
+{% set brand_known = cur_brand|upper in catalogue %}
+<div class="field"><label for="vehicleId">Registration number</label>
+  <input class="input" id="vehicleId" name="vehicleId" placeholder="KA 01 AB 1234" value="{{ cur_vid }}" required style="text-transform:uppercase">
+  <span class="hint">As printed on your RC book</span></div>
+<div class="fields-2" data-vehicle-picker data-catalogue='{{ catalogue|tojson }}'>
+  <div class="field"><label for="carBrand">Make</label>
+    <select class="input" id="carBrand" name="carBrand" required>
+      <option value="">Choose a make</option>
+      {% for b in catalogue %}<option value="{{ b }}" {% if cur_brand|upper == b %}selected{% endif %}>{{ b|title }}</option>{% endfor %}
+      <option value="__other" {% if cur_brand and not brand_known %}selected{% endif %}>Another make</option>
+    </select>
+    <input class="input" name="carBrandOther" placeholder="Make" data-other-brand value="{{ cur_brand if cur_brand and not brand_known else '' }}" style="margin-top:8px{% if brand_known or not cur_brand %};display:none{% endif %}">
+  </div>
+  <div class="field"><label for="carModel">Model</label>
+    <select class="input" id="carModel" name="carModel" data-current="{{ cur_model }}">
+      <option value="">Choose a model</option>
+    </select>
+    <input class="input" name="carModelOther" placeholder="Model" data-other-model value="{{ cur_model }}" style="margin-top:8px;display:none">
+    <span class="hint" data-price-hint></span>
+  </div>
+</div>

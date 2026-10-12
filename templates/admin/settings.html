@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block title %}Settings{% endblock %}
+{% block crumbs %}<strong>Settings</strong>{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Settings</h1><p>These apply to estimates created from now on. Existing estimates keep their numbers until edited.</p></div></div>
+<div class="grid grid-main">
+  <section class="sheet">
+    <form method="post">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="form" value="pricing">
+      <div class="sheet-head"><h2>Estimates and cover</h2></div>
+      <div class="sheet-pad">
+        <div class="fields-2">
+          <div class="field"><label for="repair_pct">Repair cost (% of a new part)</label><input class="input num" id="repair_pct" name="repair_pct" type="number" min="0" max="100" step="1" value="{{ '%g'|format(settings.repair_pct) }}"><span class="hint">Used when a line is set to Repair</span></div>
+          <div class="field"><label for="labour_pct">Labour (% of part price)</label><input class="input num" id="labour_pct" name="labour_pct" type="number" min="0" max="200" step="1" value="{{ '%g'|format(settings.labour_pct) }}"></div>
+          <div class="field"><label for="gst_pct">GST (%)</label><input class="input num" id="gst_pct" name="gst_pct" type="number" min="0" max="50" step="0.5" value="{{ '%g'|format(settings.gst_pct) }}"></div>
+          <div class="field"><label for="coverage_pct">Default insurer cover (%)</label><input class="input num" id="coverage_pct" name="coverage_pct" type="number" min="0" max="100" step="0.5" value="{{ '%g'|format(settings.coverage_pct) }}"></div>
+          <div class="field"><label for="deductible">Compulsory deductible (₹)</label><input class="input num" id="deductible" name="deductible" type="number" min="0" step="100" value="{{ settings.deductible }}"></div>
+          <div class="field"><label for="min_confidence">Default detection threshold</label><input class="input num" id="min_confidence" name="min_confidence" type="number" min="0.05" max="0.9" step="0.05" value="{{ '%g'|format(settings.min_confidence) }}"><span class="hint">0.05–0.9. Customers can adjust it per estimate.</span></div>
+        </div>
+        <label class="check"><input type="checkbox" name="vehicle_check" value="1" {% if settings.vehicle_check %}checked{% endif %}> Reject photos with no vehicle in them</label>
+        <p class="hint muted small" style="margin:6px 0 0 26px">Uses a standard YOLOv8 model, downloaded automatically the first time it's needed.</p>
+      </div>
+      <div class="sheet-foot"><button class="btn btn-dark" type="submit">Save settings</button></div>
+    </form>
+  </section>
+
+  <aside class="stack">
+    <section class="sheet" id="password">
+      <form method="post">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}"><input type="hidden" name="form" value="password">
+        <div class="sheet-head"><h3>Admin password</h3></div>
+        <div class="sheet-pad">
+          <div class="field"><label for="c">Current password</label><input class="input" id="c" type="password" name="current" autocomplete="current-password" required></div>
+          <div class="field"><label for="n">New password</label><input class="input" id="n" type="password" name="new" minlength="8" autocomplete="new-password" required></div>
+          <div class="field"><label for="f">Confirm new password</label><input class="input" id="f" type="password" name="confirm" autocomplete="new-password" required></div>
+          <button class="btn btn-dark" type="submit">Change password</button>
+        </div>
+      </form>
+    </section>
+    <section class="sheet sheet-pad">
+      <h3 style="margin-bottom:8px">Detector</h3>
+      <p style="margin:0"><span class="chip {{ 'chip-approved' if detector_status.ready else 'chip-rejected' }}">{{ 'Ready' if detector_status.ready else 'Unavailable' }}</span></p>
+      <p class="muted small" style="margin:8px 0 0">{{ detector_status.message }}</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

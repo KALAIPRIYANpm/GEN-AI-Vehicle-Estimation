@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% block title %}Customers{% endblock %}
+{% block crumbs %}<strong>Customers</strong>{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Customers</h1><p>{{ users|length }} account{{ 's' if users|length != 1 }}{% if q %} matching “{{ q }}”{% endif %}</p></div>
+  <form class="search" method="get"><input class="input" type="search" name="q" value="{{ q }}" placeholder="Name, email, phone or registration" aria-label="Search customers"></form>
+</div>
+<section class="sheet">
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Customer</th><th>Vehicle</th><th>Phone</th><th class="r">Claims</th><th>Joined</th><th>Status</th><th class="r">Actions</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td><strong>{{ u.name }}</strong><div class="muted small">{{ u.email }}</div></td>
+        <td>{{ u.car_brand|title }} {{ u.model }}<div class="muted small">{{ u.vehicle_id }}</div></td>
+        <td>{{ u.contact_number }}</td>
+        <td class="r">{% if u.claim_count %}<a href="{{ url_for('admin_claims', q=u.email) }}">{{ u.claim_count }}</a>{% else %}0{% endif %}</td>
+        <td class="small">{{ u.registration_date|when }}</td>
+        <td>{% if u.status == 'suspended' %}<span class="chip chip-rejected">Suspended</span>{% else %}<span class="chip chip-approved">Active</span>{% endif %}</td>
+        <td class="r">
+          <div class="row" style="justify-content:flex-end;gap:6px">
+            <form method="post" action="{{ url_for('suspend_user', user_id=u.user_id) }}">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button class="btn btn-sm" type="submit">{{ 'Restore' if u.status == 'suspended' else 'Suspend' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('delete_user', user_id=u.user_id) }}" data-confirm="Permanently delete {{ u.name }}? Their claims stay on record.">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7"><div class="empty"><h3>No customers found</h3><p class="muted">{{ 'Try a different search.' if q else 'Customers appear here when they sign up.' }}</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

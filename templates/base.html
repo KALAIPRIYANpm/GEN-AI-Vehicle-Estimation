@@ -1,0 +1,52 @@
+{% from "_macros.html" import logo, icon with context %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ APP_NAME }}{% endblock %} · {{ APP_NAME }}</title>
+<meta name="description" content="Photograph vehicle damage, get an itemised repair estimate and file an insurance claim.">
+<link rel="icon" href="{{ url_for('static', filename='img/favicon.svg') }}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<script>try{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t;}catch(e){}</script>
+{% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}" data-csrf="{{ csrf_token() }}">
+{% block shell %}
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="{{ url_for('dashboard') if current_user else url_for('home') }}">{{ logo() }}{{ APP_NAME }}</a>
+    {% if current_user %}
+    <nav class="nav" aria-label="Main">
+      {% set ep = request.endpoint %}
+      <a href="{{ url_for('dashboard') }}" {% if ep == 'dashboard' %}aria-current="page"{% endif %}>Overview</a>
+      <a href="{{ url_for('scan') }}" {% if ep == 'scan' %}aria-current="page"{% endif %}>New estimate</a>
+      <a href="{{ url_for('claims') }}" {% if ep in ('claims', 'claim_detail') %}aria-current="page"{% endif %}>Claims</a>
+      <a href="{{ url_for('profile') }}" {% if ep == 'profile' %}aria-current="page"{% endif %}>Profile</a>
+    </nav>
+    {% endif %}
+    <div class="topbar-actions">
+      <button class="icon-btn" type="button" data-theme-toggle title="Switch light/dark theme" aria-label="Switch light or dark theme">{{ icon('moon') }}</button>
+      {% if current_user %}
+        <span class="who"><span class="avatar" aria-hidden="true">{{ current_user.name[:1]|upper }}</span><span class="who-name">{{ current_user.name.split()[0] }}</span></span>
+        <a class="icon-btn" href="{{ url_for('logout') }}" title="Log out" aria-label="Log out">{{ icon('out') }}</a>
+      {% else %}
+        {% block guest_actions %}
+        <a class="btn btn-sm btn-ghost" style="color:#E7E9E4" href="{{ url_for('login') }}">Log in</a>
+        <a class="btn btn-sm btn-primary" href="{{ url_for('signup') }}">Create account</a>
+        {% endblock %}
+      {% endif %}
+    </div>
+  </div>
+</header>
+{% if detector_status.mode == 'demo' %}<div class="notice-bar">Demo mode: detections are simulated. Unset DETECTOR_MODE to use the trained model.</div>{% endif %}
+{% include "_flashes.html" %}
+{% block main %}<main class="page {% block page_class %}{% endblock %}">{% block content %}{% endblock %}</main>{% endblock %}
+<footer class="footer"><div class="footer-in"><span>{{ APP_NAME }} · damage detection and repair estimates</span><span>Estimates are indicative. Final amounts are set by the assessor.</span></div></footer>
+{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

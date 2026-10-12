@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import carmap with context %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Profile</h1><p>Member since {{ current_user.registration_date|when('%B %Y') }} · {{ counts.n }} estimate{{ 's' if counts.n != 1 }}</p></div>
+  {% if not editing %}<a class="btn" href="{{ url_for('profile', edit=1) }}">Edit profile</a>{% endif %}
+</div>
+
+<div class="grid grid-main">
+  <section class="sheet">
+    {% if editing %}
+    <form method="post" class="sheet-pad">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <fieldset class="group"><legend>You</legend>
+        <div class="fields-2">
+          <div class="field"><label for="name">Full name</label><input class="input" id="name" name="name" value="{{ current_user.name }}" required></div>
+          <div class="field"><label for="phone">Phone</label><input class="input" id="phone" name="phoneNumber" type="tel" value="{{ current_user.contact_number }}" required></div>
+        </div>
+        <div class="field"><label for="email">Email</label><input class="input" id="email" value="{{ current_user.email }}" disabled><span class="hint">Your email is your login and can't be changed here.</span></div>
+        <div class="field"><label for="address">Address</label><input class="input" id="address" name="address" value="{{ current_user.address }}" required></div>
+      </fieldset>
+      <fieldset class="group"><legend>Vehicle</legend>
+        {% with cur_brand=current_user.car_brand, cur_model=current_user.model, cur_vid=current_user.vehicle_id %}{% include "_vehicle_fields.html" %}{% endwith %}
+      </fieldset>
+      <div class="row"><button class="btn btn-primary" type="submit">Save profile</button><a class="btn btn-ghost" href="{{ url_for('profile') }}">Cancel</a></div>
+    </form>
+    {% else %}
+    <div class="sheet-pad">
+      <dl class="kv">
+        <dt>Name</dt><dd>{{ current_user.name }}</dd>
+        <dt>Email</dt><dd>{{ current_user.email }}</dd>
+        <dt>Phone</dt><dd>{{ current_user.contact_number }}</dd>
+        <dt>Address</dt><dd>{{ current_user.address }}</dd>
+      </dl>
+      <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+      <div class="grid grid-2" style="align-items:center">
+        <dl class="kv">
+          <dt>Make</dt><dd>{{ current_user.car_brand|title }}</dd>
+          <dt>Model</dt><dd>{{ current_user.model }}</dd>
+          <dt>Registration</dt><dd>{{ current_user.vehicle_id }}</dd>
+        </dl>
+        <div>{{ carmap({}, label="Vehicle outline") }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="sheet" id="security">
+    <div class="sheet-head"><h3>Change password</h3></div>
+    <form method="post" action="{{ url_for('change_password') }}" class="sheet-pad">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="field"><label for="cur">Current password</label><input class="input" id="cur" type="password" name="current" autocomplete="current-password" required></div>
+      <div class="field"><label for="new">New password</label><input class="input" id="new" type="password" name="new" minlength="8" autocomplete="new-password" required></div>
+      <div class="field"><label for="conf">Confirm new password</label><input class="input" id="conf" type="password" name="confirm" autocomplete="new-password" required></div>
+      <button class="btn btn-dark" type="submit">Change password</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

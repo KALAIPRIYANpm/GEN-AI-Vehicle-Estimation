@@ -1,0 +1,88 @@
+{% extends "admin/base.html" %}
+{% from "_macros.html" import chip, carmap with context %}
+{% block title %}Assessor overview{% endblock %}
+{% block crumbs %}<strong>Overview</strong>{% endblock %}
+{% block content %}
+{% if default_pw %}
+<div class="callout callout-warn" style="margin-bottom:20px"><strong>You're using the default admin password.</strong> <a href="{{ url_for('admin_settings') }}#password">Change it in Settings</a> before sharing this app.</div>
+{% endif %}
+{% set open = (by_status.get('pending', 0) + by_status.get('under_review', 0)) %}
+<div class="figures" style="margin-bottom:24px">
+  <div class="figure"><div class="v num">{{ open }}</div><div class="k">Awaiting a decision</div></div>
+  <div class="figure"><div class="v num">{{ money.paid|inr }}</div><div class="k">Approved payouts</div></div>
+  <div class="figure"><div class="v num">{{ money.claimed|inr }}</div><div class="k">Value of submitted claims</div></div>
+  <div class="figure"><div class="v num">{{ users.n }}</div><div class="k">Customers{% if users.s %} · {{ users.s }} suspended{% endif %}</div></div>
+</div>
+
+<div class="grid grid-main">
+  <section class="sheet">
+    <div class="sheet-head"><h2>Review queue</h2><a href="{{ url_for('admin_claims', status='open') }}">All open claims</a></div>
+    {% if queue %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Claim</th><th>Customer</th><th>Status</th><th class="r">Estimate</th><th></th></tr></thead>
+      <tbody>
+      {% for c in queue %}
+        <tr class="row-link" data-href="{{ url_for('admin_claim', report_id=c.report_id) }}">
+          <td><span class="mono-id">#{{ c.report_id }}</span><div class="muted small">{{ (c.submitted_at or c.created_at)|ago }}</div></td>
+          <td>{{ c.name or c.email }}<div class="muted small">{{ (c.car_brand or '')|title }} {{ c.car_model or '' }}</div></td>
+          <td>{{ chip(c.status) }}</td>
+          <td class="r num"><strong>{{ c.total_estimate|inr }}</strong></td>
+          <td class="r"><a class="btn btn-sm" href="{{ url_for('admin_claim', report_id=c.report_id) }}">Review</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="empty"><h3>Queue is clear</h3><p class="muted">New claims appear here as soon as customers submit them.</p></div>
+    {% endif %}
+  </section>
+
+  <section class="sheet sheet-pad">
+    <h3>Estimates per day</h3>
+    <p class="muted small" style="margin:4px 0 8px">Last 14 days · {{ series|sum(attribute='n') }} total</p>
+    {% set peak = (series|map(attribute='n')|max) or 1 %}
+    <div class="bars" role="img" aria-label="Estimates created per day over the last 14 days">
+      {% for d in series %}
+      <div class="b{% if not d.n %} zero{% endif %}" tabindex="0">
+        <i style="height:{{ [((d.n / peak) * 100)|round|int, 2]|max }}%"></i>
+        <span class="tip">{{ d.date|when('%d %b') }}: {{ d.n }} estimate{{ 's' if d.n != 1 }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="bars-x">{% for d in series %}<span>{% if loop.first or loop.last or loop.index0 == 7 %}{{ d.date|when('%d %b') }}{% endif %}</span>{% endfor %}</div>
+  </section>
+</div>
+
+<div class="grid grid-2" style="margin-top:20px">
+  <section class="sheet sheet-pad">
+    <h3>Where cars get hit</h3>
+    <p class="muted small" style="margin:4px 0 12px">Panels in all estimates, darker means more often</p>
+    {% set hits = {} %}{% for p in parts %}{% set _ = hits.update({p.part: p.n}) %}{% endfor %}
+    {{ carmap(hits, heat=True, label="Heat map of damaged panels") }}
+    {% if parts %}
+    {% set top = parts[0].n %}
+    <div class="hbars" style="margin-top:16px">
+      {% for p in parts %}
+      <div class="hbar"><span>{{ p.part }}</span><span class="track"><i style="width:{{ (p.n / top * 100)|round|int }}%"></i></span><span class="n num">{{ p.n }}</span><span class="tip">{{ p.part }}: {{ p.n }} line items, {{ p.v|inr }}</span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="sheet">
+    <div class="sheet-head"><h3>New customers</h3><a href="{{ url_for('user_manager') }}">All customers</a></div>
+    <div class="table-wrap"><table class="table">
+      <tbody>
+      {% for u in recent_users %}
+        <tr><td><strong>{{ u.name }}</strong><div class="muted small">{{ u.email }}</div></td>
+            <td>{{ u.car_brand|title }} {{ u.model }}</td>
+            <td class="r muted small">{{ u.registration_date|when }}</td></tr>
+      {% else %}
+        <tr><td class="muted">No customers yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <div class="sheet-foot small muted">Status of claims: {% for s in ['draft','pending','under_review','approved','rejected'] %}{{ STATUS_LABELS[s] }} {{ by_status.get(s, 0) }}{{ ' · ' if not loop.last }}{% endfor %}</div>
+  </section>
+</div>
+{% endblock %}

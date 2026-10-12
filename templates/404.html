@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import carmap with context %}
+{% block title %}{{ 'No access' if forbidden else 'Page not found' }}{% endblock %}
+{% block content %}
+<section class="sheet empty" style="max-width:640px;margin:40px auto">
+  <div style="max-width:320px;margin:0 auto 16px">{{ carmap({}, label="Vehicle outline") }}</div>
+  <h1>{{ "You don't have access to this" if forbidden else "This page isn't here" }}</h1>
+  <p class="muted" style="margin-top:10px">{{ "Log in with the account that owns it." if forbidden else "The link may be old, or the claim was deleted." }}</p>
+  <a class="btn btn-primary" href="{{ url_for('dashboard') if current_user else url_for('home') }}">Go to {{ 'your overview' if current_user else 'the home page' }}</a>
+</section>
+{% endblock %}
